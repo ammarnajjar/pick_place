@@ -13,23 +13,23 @@
 #include <moveit/move_group_interface/move_group.h>
 #include <moveit_msgs/CollisionObject.h>
 #include <moveit_msgs/AttachedCollisionObject.h>
-
-// #include <shape_tools/solid_primitive_dims.h>
+#include <moveit/robot_state/robot_state.h>
 
 #include <math.h>
 #include <eigen_conversions/eigen_msg.h>
+
 #include <tf/transform_datatypes.h>
 #include <tf/transform_listener.h>
-#include <moveit/robot_state/robot_state.h>
+
 #include <kinect2_viewer/Merosy_Obj.h>
 #include <kinect2_viewer/Vec_Obj.h>
-//#include <moveit/robot_state/
 
 // Globals
 ros::Subscriber sub;
 int aux = -1;
 std::vector<kinect2_viewer::Merosy_Obj> detected_objects;
 std::vector<kinect2_viewer::Merosy_Obj> manipulator;
+int SLEEP_TIME = 3; // in seconds
 
 
 class Pose {
@@ -51,7 +51,8 @@ class Pose {
 };
 
 
-void send_joints_to_robot(const std::vector<std::string>& joint_names_received, std::vector<double>& joint_values_received, robot_state::RobotState &current_values)
+void send_joints_to_robot(const std::vector<std::string>& joint_names_received,
+		std::vector<double>& joint_values_received, robot_state::RobotState &current_values)
 {
 
     /* Move group for Robot and joints set */
@@ -97,39 +98,32 @@ void send_joints_to_robot(const std::vector<std::string>& joint_names_received, 
         if(aux==1)
             group.execute(plan);
     }
-
 }
 
 bool isStateValid(const planning_scene::PlanningScene *planning_scene, robot_state::RobotState *state,
                   const robot_state::JointModelGroup *group, const double *joint_group_variable_values)
 {
     state->setJointGroupPositions(group, joint_group_variable_values);
-
     std::vector<double> joint_values;
     state->copyJointGroupPositions(group, joint_values);
-
     collision_detection::CollisionRequest request;
     request.verbose = false;
     request.group_name = group->getName();
-
     collision_detection::CollisionResult result;
     planning_scene->checkCollision(request, result, *state);
 
     if (result.collision)
         return false;
-    // limit for joints (shoulder_pan_joint, shoulder_lift_joint)
-    // else if (joint_values[2]<0.3 || joint_values[0]<-1.0 || joint_values[1]<-1.0)
-    //    return false;
-    //    else if ((group->getName()=="Right") && joint_values[0]<-0.2 || joint_values[0]>3.2
-    //             && joint_values[1]<-3.33 || joint_values[1]>0.16)
-    //        return false;
-
+    // limit for joints for the IK validation to be above the table
+    else if (joint_values[1] > 0.3 || joint_values[0] < -0.5  || joint_values[4] < 0.3 || joint_values[4] > 1.5)
+       return false;
 
     return planning_scene->isStateFeasible(*state);
 }
 
 kinect2_viewer::Merosy_Obj get_obj_closest_to_camera(
-		std::vector<kinect2_viewer::Merosy_Obj>& objs) {
+		std::vector<kinect2_viewer::Merosy_Obj>& objs)
+{
 	double closest = 100;
 	for (size_t i = 0; i < objs.size(); ++i) {
 		if (objs.at(i).center_x < closest) {
@@ -138,7 +132,6 @@ kinect2_viewer::Merosy_Obj get_obj_closest_to_camera(
 	}
 	return objs.at(closest);
 }
-
 
 void objCallback(const kinect2_viewer::Vec_Obj::ConstPtr& msg)
 {
@@ -221,13 +214,11 @@ void move_robot_to(Pose& pose)
 	current_values.copyJointGroupPositions(joint_model_group, joint_values);
 	kinematic_state->setJointGroupPositions(joint_model_group, joint_values);
 
-
 	/* Print joint names and values */
 	for(std::size_t i = 0; i < joint_names.size(); ++i)
 	{
 		ROS_INFO("Joint %s: %f", joint_names[i].c_str(), joint_values[i]);
 	}
-
 
 	// Move the arm in position
 	Eigen::Affine3d goal_pose = get_obj_pose(pose.dX, pose.dY, pose.dZ, pose.roll_deg, pose.pitch_deg, pose.yaw_deg);
@@ -243,11 +234,10 @@ void move_robot_to(Pose& pose)
 		ROS_WARN("Was NOT able to set IK");
 		return;
 	}
-
 	kinematic_state->copyJointGroupPositions(joint_model_group, joint_values);
 
 	send_joints_to_robot(joint_names, joint_values, current_values);
-	sleep(5);
+	sleep(SLEEP_TIME);
 }
 
 
@@ -294,10 +284,12 @@ int main(int argc, char **argv)
 
 		{
 			// Move to preset active position
-			Pose pose = Pose(dXGripper, dYGripper, dZGripper-0.73, -45, -180, -90);
+			roll_deg=30;
+			pitch_deg=180;
+			yaw_deg=90;
+			Pose pose = Pose(dXGripper, dYGripper, dZGripper-0.73, roll_deg, pitch_deg, yaw_deg);
 			move_robot_to(pose);
 		}
-
 	}
     ros::shutdown();
     return 0;
