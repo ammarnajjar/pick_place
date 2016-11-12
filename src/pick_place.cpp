@@ -27,6 +27,7 @@
 // Globals
 ros::Subscriber sub;
 int aux = -1;
+int obj_nr = 1;
 std::vector<kinect2_viewer::Merosy_Obj> detected_objects;
 std::vector<kinect2_viewer::Merosy_Obj> manipulator;
 int SLEEP_TIME = 3; // in seconds
@@ -86,7 +87,7 @@ void send_joints_to_robot(const std::vector<std::string>& joint_names_received,
         else
         {
             std::cout << "Move the robot? (Press 1 if YES)";
-            std::cin>>aux;
+            aux = 1;
             if(aux==1)
                 group.execute(plan);
         }
@@ -94,7 +95,7 @@ void send_joints_to_robot(const std::vector<std::string>& joint_names_received,
     else
     {
         std::cout << "Move the robot? (Press 1 if YES)";
-        std::cin>>aux;
+        aux = 1;
         if(aux==1)
             group.execute(plan);
     }
@@ -162,7 +163,7 @@ void objCallback(const kinect2_viewer::Vec_Obj::ConstPtr& msg)
 	}
 
 	std::cout << "To where do you want to move? (Press 0 to Cancel)" << std::endl;
-    std::cin>>aux;
+	aux = 1;
 }
 
 Eigen::Affine3d get_obj_pose(
@@ -261,11 +262,16 @@ int main(int argc, char **argv)
 		while (aux < 1)
 			sleep(1);
 
-		if (aux > 0 and aux <= (int)detected_objects.size()) {
-			std::cout << "Moving to Object " << aux << std::endl;
-			dXObj = detected_objects.at(aux-1).center_x;
-			dYObj = detected_objects.at(aux-1).center_y;
-			dZObj = detected_objects.at(aux-1).center_z;
+		if (argc >= 2) {
+			obj_nr = atoi(argv[1]);
+		} else {
+			obj_nr = 1;
+		}
+		if (obj_nr > 0 and obj_nr <= (int)detected_objects.size()) {
+			std::cout << "Moving to Object " << obj_nr << std::endl;
+			dXObj = detected_objects.at(obj_nr-1).center_x;
+			dYObj = detected_objects.at(obj_nr-1).center_y;
+			dZObj = detected_objects.at(obj_nr-1).center_z;
 		}
 
 		// if (manipulator.size() > 0) {
