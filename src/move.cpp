@@ -285,16 +285,18 @@ int main(int argc, char **argv)
 	Pose pose1 = Pose(dXObj, dYObj, dZObj-0.02, roll_deg, pitch_deg, yaw_deg);
 	move_robot_to(pose1);
 
-	{
-		// Move to preset active position
-		roll_deg=30;
-		pitch_deg=180;
-		yaw_deg=90;
-		Pose pose = Pose(dXGripper, dYGripper, dZGripper-0.73, roll_deg, pitch_deg, yaw_deg);
-		move_robot_to(pose);
-	}
+	// {
+	// 	// Move to preset active position
+	// 	roll_deg=30;
+	// 	pitch_deg=180;
+	// 	yaw_deg=90;
+	// 	Pose pose = Pose(dXGripper, dYGripper, dZGripper-0.73, roll_deg, pitch_deg, yaw_deg);
+	// 	move_robot_to(pose);
+	// }
 
 	ros::shutdown();
+	std::cout << "DONE" << std::endl;
+
 	return 0;
 }
 
