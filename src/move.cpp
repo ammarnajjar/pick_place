@@ -23,6 +23,7 @@
 
 #include <kinect2_viewer/Merosy_Obj.h>
 #include <kinect2_viewer/Vec_Obj.h>
+#include <sstream>
 
 // Globals
 ros::Subscriber sub;
@@ -245,59 +246,55 @@ void move_robot_to(Pose& pose)
 
 int main(int argc, char **argv)
 {
-    ros::init (argc, argv, "pick_place");
+    ros::init (argc, argv, "move");
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
-	double dXObj = 0;
-	double dYObj = 0;
-	double dZObj = 0;
+	std::cout << "argc = " << argc << std::endl;
 	double dXGripper = 0.25;
 	double dYGripper = -0.0003;
 	double dZGripper = 0.441;
-
-	{
-		ros::NodeHandle nh;
-		sub = nh.subscribe("/merosy_objects", 5, objCallback);
-
-		while (aux < 1)
-			sleep(1);
-
-		if (argc >= 2) {
-			obj_nr = atoi(argv[1]);
-		} else {
-			obj_nr = 1;
-		}
-		if (obj_nr > 0 and obj_nr <= (int)detected_objects.size()) {
-			std::cout << "Moving to Object " << obj_nr << std::endl;
-			dXObj = detected_objects.at(obj_nr-1).center_x;
-			dYObj = detected_objects.at(obj_nr-1).center_y;
-			dZObj = detected_objects.at(obj_nr-1).center_z;
-		}
-
-		// if (manipulator.size() > 0) {
-		// 	kinect2_viewer::Merosy_Obj gripper = get_obj_closest_to_camera(manipulator);
-		// 	dXGripper = gripper.center_x;
-		// 	dYGripper = gripper.center_y;
-		// 	dZGripper = gripper.center_z;
-		// }
-
-		// Move the arm in position
+		double dXObj = 0;
+		double dYObj = 0;
+		double dZObj = 0;
 		double roll_deg=0;
 		double pitch_deg=180;
 		double yaw_deg=-90;
-		Pose pose1 = Pose(dXObj, dYObj, dZObj-0.02, roll_deg, pitch_deg, yaw_deg);
-		move_robot_to(pose1);
-
-		{
-			// Move to preset active position
-			roll_deg=30;
-			pitch_deg=180;
-			yaw_deg=90;
-			Pose pose = Pose(dXGripper, dYGripper, dZGripper-0.73, roll_deg, pitch_deg, yaw_deg);
-			move_robot_to(pose);
-		}
+	if (argc >= 7) {
+		std::istringstream iss1( argv[1] );
+		iss1 >> dXObj;
+		std::istringstream iss2( argv[2] );
+		iss2 >> dYObj;
+		std::istringstream iss3( argv[3] );
+		iss3 >> dZObj;
+		std::istringstream iss4( argv[4] );
+		iss4 >> roll_deg;
+		std::istringstream iss5( argv[5] );
+		iss5 >> pitch_deg;
+		std::istringstream iss6( argv[6] );
+		iss6 >> yaw_deg;
 	}
+
+		std::cout << "argv[1] = " << argv[1] << ", " << dXObj << std::endl;
+		std::cout << "argv[2] = " << argv[2] << ", " << dYObj << std::endl;
+		std::cout << "argv[3] = " << argv[3] << ", " << dZObj << std::endl;
+		std::cout << "argv[4] = " << argv[4] << ", " << roll_deg << std::endl;
+		std::cout << "argv[5] = " << argv[5] << ", " << pitch_deg << std::endl;
+		std::cout << "argv[6] = " << argv[6] << ", " << yaw_deg << std::endl;
+	// Move the arm in position
+	Pose pose1 = Pose(dXObj, dYObj, dZObj-0.02, roll_deg, pitch_deg, yaw_deg);
+	move_robot_to(pose1);
+
+	{
+		// Move to preset active position
+		roll_deg=30;
+		pitch_deg=180;
+		yaw_deg=90;
+		Pose pose = Pose(dXGripper, dYGripper, dZGripper-0.73, roll_deg, pitch_deg, yaw_deg);
+		move_robot_to(pose);
+	}
+
     ros::shutdown();
     return 0;
 }
+
